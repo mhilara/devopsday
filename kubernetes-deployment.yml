@@ -1,0 +1,120 @@
+# Poryect: DevOps Day 2023
+# Autor: Milton Hilara
+# mhcloud.io
+
+# Configuración de Prometheus
+apiVersion: monitoring.coreos.com/v1
+kind: Prometheus
+metadata:
+  name: prometheus
+spec:
+  serviceAccountName: prometheus
+  alerting:
+    alertmanagers:
+      - name: alertmanager
+        namespace: monitoring
+        port: 9093
+  scrapeInterval: 15s
+  scrapeConfigs:
+    - jobName: node-exporter
+      scrapeInterval: 15s
+      scrapeUrls:
+        - http://localhost:9100/metrics
+    - jobName: kubernetes-pods
+      scrapeInterval: 15s
+      scrapeUrls:
+        - http://localhost:10255/metrics
+  replicas: 1
+
+# Configuración de Grafana
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grafana
+  template:
+    metadata:
+      labels:
+        app: grafana
+    spec:
+      containers:
+        - name: grafana
+          image: grafana/grafana:latest
+          ports:
+            - containerPort: 3000
+          env:
+            - name: DevOPsPassw0rd
+              valueFrom:
+                secretKeyRef:
+                  name: grafana
+                  key: admin-password
+
+# Configuración de Jenkins
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jenkins
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: jenkins
+  template:
+    metadata:
+      labels:
+        app: jenkins
+    spec:
+      containers:
+        - name: jenkins
+          image: jenkins/jenkins:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: JENKINS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: jenkins
+                  key: jenkins-password
+
+# Configuración del servicio de Prometheus
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus
+spec:
+  selector:
+    app: prometheus
+  ports:
+    - port: 9090
+      targetPort: 9090
+      protocol: TCP
+
+# Configuración del servicio de Grafana
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+spec:
+  selector:
+    app: grafana
+  ports:
+    - port: 3000
+      targetPort: 3000
+      protocol: TCP
+
+# Configuración del servicio de Jenkins
+apiVersion: v1
+kind: Service
+metadata:
+  name: jenkins
+spec:
+  selector:
+    app: jenkins
+  ports:
+    - port: 8080
+      targetPort: 8080
+      protocol: TCP
