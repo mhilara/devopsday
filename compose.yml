@@ -1,0 +1,54 @@
+version: "3.9"
+services:
+    image: jwilder/nginx-proxy
+    container_name: nginx
+    labels:
+      com.github.jrcs.letsencrypt_nginx_proxy_companion.nginx_proxy: "true"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./proxy/certs:/etc/nginx/certs
+      - ./proxy/confd:/etc/nginx/conf.d
+      - ./proxy/vhostd:/etc/nginx/vhost.d
+      - ./proxy/html:/usr/share/nginx/html
+      - /var/run/docker.sock:/tmp/docker.sock
+    depends_on:
+      - jenkins
+      - prometheus
+      - grafana
+
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    contanier_name: prometheus
+    scrapeInterval: 15s
+    ports:
+      - "9090:9090"
+    environment:
+      - VIRTUAL_HOST=prometheus.mhcloud.io
+      - VIRTUAL_PORT=9090
+
+  grafana:
+    image: grafana/grafana:latest
+    contanier_name: grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    environment:
+      - VIRTUAL_HOST=grafana.mhcloud.io
+      - VIRTUAL_PORT=3000
+
+  jenkins:
+    image: jenkins/jenkins:latest
+    contanier_name: jenkins
+    ports:
+      - "8080:8080"
+    environment:
+      - VIRTUAL_HOST=jenkins.mhcloud.io
+      - VIRTUAL_PORT=8080
+
+networks:
+  default:
+    name: my-network
